@@ -1,0 +1,10 @@
+main: com.stardevllc.staritemgenerators.plugin.StarItemGeneratorsPlugin
+version: ${version}
+api-version: 1.13
+name: ${rootProject.name}
+author: Firestar311
+depend: [NBTAPI]
+softdepend: [StarItems, StarCore, StarMCLib]
+commands: 
+  itemgenerator:
+    aliases: [ig]

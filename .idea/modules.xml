@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/StarItemGenerators.common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/common/StarItemGenerators.common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/StarItemGenerators.main.iml" filepath="$PROJECT_DIR$/.idea/modules/StarItemGenerators.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/plugin/StarItemGenerators.plugin.main.iml" filepath="$PROJECT_DIR$/.idea/modules/plugin/StarItemGenerators.plugin.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/standalone/StarItemGenerators.standalone.main.iml" filepath="$PROJECT_DIR$/.idea/modules/standalone/StarItemGenerators.standalone.main.iml" />
+    </modules>
+  </component>
+</project>

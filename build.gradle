@@ -1,0 +1,58 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.stardevllc'
+version = '0.1.0'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+publishing {
+    repositories {
+        maven {
+            name="stardev"
+            url="https://repo.stardevllc.com/releases"
+            credentials(PasswordCredentials)
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+dependencies {
+    compileOnly "org.spigotmc:spigot-api:${spigotVersion}"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+
+    withJavadocJar()
+    withSourcesJar()
+}
+
+tasks.jar.finalizedBy(javadocJar)
+tasks.jar.finalizedBy(sourcesJar)
+tasks.build.finalizedBy(publishToMavenLocal)
+
+tasks.withType(PublishToMavenLocal).configureEach {
+    dependsOn(javadocJar)
+    dependsOn(sourcesJar)
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    dependsOn(javadocJar)
+    dependsOn(sourcesJar)
+}
