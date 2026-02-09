@@ -39,7 +39,6 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
     
     private final CmdFlags cmdFlags;
     
-    private static final TimeParser timeParser = new TimeParser();
     private static final TimeFormat timeFormat = new TimeFormat("%*##h%%*##m%%*##s%%*##ms%");
     
     private static final PresenceFlag DEBUG_FLAG = new PresenceFlag("d", "Debug");
@@ -304,7 +303,7 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
                 return true;
             }
             
-            long cooldown = timeParser.parseTime(args[2]);
+            long cooldown = TimeParser.parseTime(args[2]);
             
             int maxItems;
             Object rawMaxItems = flagResults.getValue(MAX_ITEMS_FLAG);
