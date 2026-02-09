@@ -11,11 +11,10 @@ import com.stardevllc.starmclib.Position;
 import com.stardevllc.starmclib.StarColorsV2;
 import com.stardevllc.starmclib.command.flags.CmdFlags;
 import com.stardevllc.starmclib.command.flags.FlagResult;
-import com.stardevllc.starmclib.command.flags.type.ComplexFlag;
 import com.stardevllc.starmclib.command.flags.type.PresenceFlag;
+import com.stardevllc.starmclib.command.params.*;
 import com.stardevllc.starmclib.plugin.ExtendedJavaPlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -38,27 +37,39 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
     private Map<UUID, Selection> positionSelection = new HashMap<>();
     
     private final CmdFlags cmdFlags;
+    private final CmdParams cmdParams;
     
     private static final TimeFormat timeFormat = new TimeFormat("%*##h%%*##m%%*##s%%*##ms%");
     
-    private static final PresenceFlag DEBUG_FLAG = new PresenceFlag("d", "Debug");
+    private static final class Flags {
+        private static final PresenceFlag DEBUG = new PresenceFlag("d", "Debug");
+        
+        private static final class Create {
+            private static final PresenceFlag SELECT = new PresenceFlag("se", "Select");
+            private static final PresenceFlag INIT = new PresenceFlag("i", "Init");
+            private static final PresenceFlag START = new PresenceFlag("st", "start");
+        }
+    }
     
-    private static final PresenceFlag SELECT_FLAG = new PresenceFlag("se", "Select");
-    private static final PresenceFlag INIT_FLAG = new PresenceFlag("i", "Init");
-    private static final PresenceFlag START_FLAG = new PresenceFlag("st", "start");
-    
-    //Item specific flags
-    private static final PresenceFlag INVULNERABLE_FLAG = new PresenceFlag("in", "Invulnerable");
-    private static final PresenceFlag INVENTORY_PICKUP_FLAG = new PresenceFlag("ip", "Inventory Pickup");
-    private static final PresenceFlag PERSISTENT_FLAG = new PresenceFlag("pe", "Persistent");
-    private static final ComplexFlag MAX_ITEMS_FLAG = new ComplexFlag("mi", "Max Items", Integer.MAX_VALUE);
+    private static final class Params {
+        private static final class Item {
+            private static final Param<String> ID = new Param<>("id", "ID", String.class, "");
+            private static final Param<String> MATERIAL = new Param<>("material", "Material", String.class, SMaterial.AIR.name());
+            private static final Param<String> COOLDOWN = new Param<>("cooldown", "Cooldown", String.class, "1ms");
+            private static final Param<Boolean> INVULNERABLE = new Param<>("invulnerable", "Invulnerable", Boolean.class, true);
+            private static final Param<Boolean> INVENTORY_PICKUP = new Param<>("ip", "Inventory Pickup", Boolean.class, false);
+            private static final Param<Boolean> PERSISTENT = new Param<>("persistent", "Persistent", Boolean.class, true);
+            private static final Param<Integer> MAX_COUNT = new Param<>("maxitems", "Max Items", Integer.class, Integer.MAX_VALUE);
+        }
+    }
     
     public ItemGeneratorCommand(ExtendedJavaPlugin plugin, GeneratorRegistry registry) {
         this.plugin = plugin;
         this.registry = registry;
         Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
         
-        this.cmdFlags = new CmdFlags(DEBUG_FLAG, SELECT_FLAG, INIT_FLAG, START_FLAG, INVENTORY_PICKUP_FLAG, INVULNERABLE_FLAG, PERSISTENT_FLAG, MAX_ITEMS_FLAG);
+        this.cmdFlags = new CmdFlags(Flags.DEBUG, Flags.Create.SELECT, Flags.Create.INIT, Flags.Create.START);
+        this.cmdParams = new CmdParams(Params.Item.ID, Params.Item.MATERIAL, Params.Item.COOLDOWN, Params.Item.INVULNERABLE, Params.Item.INVENTORY_PICKUP, Params.Item.PERSISTENT, Params.Item.MAX_COUNT);
     }
     
     @Override
@@ -149,17 +160,17 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
             
             colors.coloredLegacy(sender, "&eCreated an Item Generator with the id &b" + object.getKey());
             
-            if (flagResults.isPresent(INIT_FLAG)) {
+            if (flagResults.isPresent(Flags.Create.INIT)) {
                 itemGenerator.init(player.getWorld());
                 colors.coloredLegacy(sender, "&eInitialized the Item Generator &b" + object.getKey() + " &ein world &b" + player.getWorld().getName());
             }
             
-            if (flagResults.isPresent(START_FLAG)) {
+            if (flagResults.isPresent(Flags.Create.START)) {
                 itemGenerator.start();
                 colors.coloredLegacy(sender, "&eStarted the Item Generator &b" + object.getKey());
             }
             
-            if (flagResults.isPresent(SELECT_FLAG)) {
+            if (flagResults.isPresent(Flags.Create.SELECT)) {
                 selectedGenerators.put(player.getUniqueId(), object.getKey());
                 colors.coloredLegacy(sender, "&eSelected the Item Generator &b" + object.getKey());
             }
@@ -270,8 +281,10 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
             generator.stop();
             colors.coloredLegacy(sender, "&eStopped the Item Generator &b" + generator.getId());
         } else if (args[0].equalsIgnoreCase("additem")) {
-            if (!(args.length > 2)) {
-                colors.coloredLegacy(sender, "&cUsage: /" + label + " " + args[0] + " <material> <cooldown>");
+            if (!(args.length > 1)) {
+                colors.coloredLegacy(sender, "&cUsage: /" + label + " " + args[0] + " <params>");
+                List<String> paramsList = List.of(Params.Item.ID.id(), Params.Item.MATERIAL.id(), Params.Item.COOLDOWN.id(), Params.Item.INVULNERABLE.id(), Params.Item.INVENTORY_PICKUP.id(), Params.Item.PERSISTENT.id(), Params.Item.MAX_COUNT.id());
+                colors.coloredLegacy(sender, "  &cParams: " + String.join(", ", paramsList));
                 return true;
             }
             
@@ -285,7 +298,11 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
                 return true;
             }
             
-            Optional<SMaterial> matOpt = SMaterial.matchXMaterial(args[1].toUpperCase());
+            
+            ParamResult paramResults = this.cmdParams.parse(args);
+            args = paramResults.args();
+            
+            Optional<SMaterial> matOpt = SMaterial.matchXMaterial(paramResults.getValue(Params.Item.MATERIAL));
             if (matOpt.isEmpty()) {
                 colors.coloredLegacy(sender, "&cYou provided an invalid material " + args[1]);
                 return true;
@@ -298,40 +315,43 @@ public class ItemGeneratorCommand implements CommandExecutor, Listener {
                 return true;
             }
             
-            if (generator.hasEntry(material.name().toLowerCase())) {
+            String id = paramResults.getValue(Params.Item.ID);
+            
+            if (id == null || id.isBlank()) {
+                id = material.name().toLowerCase();
+            }
+            
+            if (generator.hasEntry(id)) {
                 colors.coloredLegacy(sender, "&cAn item already exists by the name " + material.name().toLowerCase());
                 return true;
             }
             
-            long cooldown = TimeParser.parseTime(args[2]);
+            long cooldown = TimeParser.parseTime(paramResults.getValue(Params.Item.COOLDOWN));
             
-            int maxItems;
-            Object rawMaxItems = flagResults.getValue(MAX_ITEMS_FLAG);
-            try {
-                maxItems = Integer.parseInt(rawMaxItems.toString());
-            } catch (NumberFormatException e) {
+            int maxItems = paramResults.getValue(Params.Item.MAX_COUNT);
+            if (maxItems <= 0) {
                 colors.coloredLegacy(sender, "&cInvalid number provided: " + args[3]);
                 return true;
             }
             
             List<Flag> flags = new ArrayList<>();
             
-            if (flagResults.isPresent(PERSISTENT_FLAG)) {
+            if (paramResults.getValue(Params.Item.PERSISTENT)) {
                 flags.add(Flag.PERSISTENT);
             }
             
-            if (flagResults.isPresent(INVULNERABLE_FLAG)) {
+            if (paramResults.getValue(Params.Item.INVULNERABLE)) {
                 flags.add(Flag.INVULNERABLE);
             }
             
-            if (flagResults.isPresent(INVENTORY_PICKUP_FLAG)) {
+            if (paramResults.getValue(Params.Item.INVENTORY_PICKUP)) {
                 flags.add(Flag.INVENTORY_PICKUP);
             }
             
             ItemEntry itemEntry = new ItemEntry(material.name().toLowerCase(), ItemBuilders.of(material), cooldown, maxItems, new Position(location.getBlockX(), location.getBlockY(), location.getBlockZ()), flags);
             generator.addItemEntry(itemEntry);
             
-            if (flagResults.isPresent(DEBUG_FLAG)) {
+            if (flagResults.isPresent(Flags.DEBUG)) {
                 itemEntry.addPickupListener((entity, item, entry, gen) -> colors.coloredLegacy(sender, "&8Picked up " + entry.getId()));
                 itemEntry.addSpawnListener((item, entry, gen) -> colors.coloredLegacy(sender, "&8Spawned " + entry.getId()));
             }
